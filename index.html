@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRAFCET — Atelier de Bouchage & Étiquetage</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1628;
+    --border: #1e2d4a;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --text: #c8d8f0;
+    --muted: #4a6080;
+    --active-step: #00d4ff;
+    --inactive-step: #1e3050;
+    --trans-color: #ffd700;
+    --parallel: #ff6b35;
+    --glow: 0 0 20px rgba(0,212,255,0.4);
+    --glow2: 0 0 20px rgba(57,255,20,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Exo 2', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #060c1a 0%, #0f1a30 50%, #060c1a 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 20px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 300%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
+    animation: scanline 4s linear infinite;
+  }
+  @keyframes scanline { to { left: 100%; } }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .title-block h1 {
+    font-size: clamp(1.1rem, 2.5vw, 1.8rem);
+    font-weight: 900;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: var(--glow);
+  }
+  .title-block h2 {
+    font-size: clamp(0.75rem, 1.5vw, 0.95rem);
+    font-weight: 300;
+    color: var(--muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .badge {
+    background: linear-gradient(135deg, var(--accent2), #ff4500);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 3px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 6px;
+    display: inline-block;
+  }
+
+  .names-block {
+    text-align: right;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .names-block .name { color: var(--accent3); }
+  .names-block .label { color: var(--accent2); font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 10px;
+    padding: 15px 30px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    padding: 8px 18px;
+    border: 1px solid;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-start {
+    background: rgba(57,255,20,0.1);
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+  .btn-start:hover, .btn-start.active {
+    background: var(--accent3);
+    color: #000;
+    box-shadow: var(--glow2);
+  }
+  .btn-reset {
+    background: rgba(255,107,53,0.1);
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-reset:hover {
+    background: var(--accent2);
+    color: #000;
+    box-shadow: 0 0 20px rgba(255,107,53,0.5);
+  }
+  .btn-step {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-step:hover {
+    background: var(--accent);
+    color: #000;
+    box-shadow: var(--glow);
+  }
+  .btn-auto {
+    background: rgba(255,215,0,0.1);
+    border-color: var(--trans-color);
+    color: var(--trans-color);
+  }
+  .btn-auto:hover, .btn-auto.active {
+    background: var(--trans-color);
+    color: #000;
+  }
+
+  .speed-ctrl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .speed-ctrl input {
+    accent-color: var(--accent);
+    width: 100px;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    gap: 20px;
+    padding: 8px 30px;
+    background: #08111e;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    flex-wrap: wrap;
+  }
+  .status-item { display: flex; gap: 6px; align-items: center; }
+  .status-label { color: var(--muted); }
+  .status-val { color: var(--accent); font-weight: 700; }
+  .status-val.on { color: var(--accent3); }
+  .status-val.off { color: #334; }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0;
+    min-height: calc(100vh - 180px);
+  }
+
+  /* GRAFCET AREA */
+  .grafcet-area {
+    padding: 25px;
+    overflow: auto;
+  }
+
+  .grafcet-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+  }
+  .tab {
+    padding: 8px 20px;
+    font-size: 0.8rem;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--panel);
+    color: var(--muted);
+    transition: all 0.2s;
+    margin-right: 3px;
+    border-radius: 4px 4px 0 0;
+  }
+  .tab.active {
+    background: var(--bg);
+    color: var(--accent);
+    border-color: var(--accent);
+    border-bottom: 2px solid var(--bg);
+    margin-bottom: -2px;
+  }
+
+  .grafcet-view { display: none; }
+  .grafcet-view.active { display: block; }
+
+  /* SVG GRAFCET */
+  svg {
+    font-family: 'Share Tech Mono', monospace;
+    overflow: visible;
+  }
+
+  /* STEP styles (applied via JS) */
+  .step-box {
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .step-box.active rect { fill: rgba(0,212,255,0.2); stroke: var(--active-step); stroke-width: 2.5; filter: drop-shadow(0 0 8px rgba(0,212,255,0.7)); }
+  .step-box.inactive rect { fill: rgba(30,48,80,0.4); stroke: var(--muted); stroke-width: 1; }
+  .step-box.initial rect { stroke-width: 3; }
+  .step-box.active .step-num { fill: var(--active-step); }
+  .step-box.inactive .step-num { fill: var(--muted); }
+
+  .trans-line.enabled { stroke: var(--trans-color); stroke-width: 2; }
+  .trans-line.disabled { stroke: #2a3a50; stroke-width: 1.5; }
+  .trans-cond.enabled { fill: var(--trans-color); }
+  .trans-cond.disabled { fill: var(--muted); }
+
+  /* RIGHT PANEL */
+  .side-panel {
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  .panel-section h3 {
+    font-size: 0.72rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  /* SENSOR GRID */
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .sensor {
+    background: #08111e;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    user-select: none;
+  }
+  .sensor:hover { border-color: var(--accent); }
+  .sensor.active {
+    background: rgba(57,255,20,0.1);
+    border-color: var(--accent3);
+    box-shadow: 0 0 8px rgba(57,255,20,0.3);
+  }
+  .sensor-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .sensor.active .sensor-name { color: var(--accent3); }
+  .sensor-desc {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .sensor-state {
+    font-size: 0.65rem;
+    margin-top: 4px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .sensor.active .sensor-state { color: var(--accent3); }
+  .sensor:not(.active) .sensor-state { color: #334; }
+
+  /* OUTPUT indicators */
+  .output-list { display: flex; flex-direction: column; gap: 6px; }
+  .output-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #08111e;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+  }
+  .output-label { color: var(--text); }
+  .output-indicator {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #1a2a3a;
+    transition: all 0.3s;
+  }
+  .output-indicator.on {
+    background: var(--accent3);
+    box-shadow: 0 0 8px rgba(57,255,20,0.7);
+  }
+
+  /* LOG */
+  .log-area {
+    background: #050c15;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    height: 140px;
+    overflow-y: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  .log-area .log-entry { margin-bottom: 2px; }
+  .log-area .log-entry.info { color: var(--accent); }
+  .log-area .log-entry.ok { color: var(--accent3); }
+  .log-area .log-entry.warn { color: var(--trans-color); }
+
+  /* LEGEND */
+  .legend { display: flex; flex-direction: column; gap: 6px; font-size: 0.68rem; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-box {
+    width: 18px; height: 14px; border-radius: 2px; flex-shrink: 0;
+    border: 1.5px solid;
+  }
+
+  /* ANIMATION */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .step-box.active { animation: pulse 1.5s ease-in-out infinite; }
+  .step-box.active:hover { animation: none; }
+
+  /* Responsive */
+  @media (max-width: 800px) {
+    .main { grid-template-columns: 1fr; }
+    .side-panel { border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="title-block">
+      <h1>GRAFCET — Parallélisme : Bouchage & Étiquetage</h1>
+      <h2>TP · ARC — Automatisme, Régulation &amp; Capteurs</h2>
+      <span class="badge">Ligne Pharmaceutique</span>
+    </div>
+    <div class="names-block">
+      <div class="label">Équipe</div>
+      <div class="name">Yesser Ben Rhouma</div>
+      <div class="name">Meriam Warteni</div>
+      <div class="name">Sarra Fatnassi</div>
+      <div class="name">Siwar Gouader</div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <button class="btn btn-start" id="btnStart" onclick="startCycle()">▶ Démarrer</button>
+  <button class="btn btn-step" onclick="stepOnce()">⏭ Pas à pas</button>
+  <button class="btn btn-auto" id="btnAuto" onclick="toggleAuto()">⚡ Auto</button>
+  <button class="btn btn-reset" onclick="resetAll()">↺ Reset</button>
+  <div class="speed-ctrl">
+    <span>Vitesse:</span>
+    <input type="range" id="speedSlider" min="300" max="3000" value="1200" step="100">
+    <span id="speedVal">1.2s</span>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <div class="status-item"><span class="status-label">ÉTAT:</span><span class="status-val" id="stState">ARRÊT</span></div>
+  <div class="status-item"><span class="status-label">CYCLE:</span><span class="status-val" id="stCycle">0</span></div>
+  <div class="status-item"><span class="status-label">ÉTAPES ACTIVES:</span><span class="status-val" id="stSteps">—</span></div>
+  <div class="status-item"><span class="status-label">PHASE:</span><span class="status-val" id="stPhase">—</span></div>
+</div>
+
+<div class="main">
+  <div class="grafcet-area">
+    <div class="grafcet-tabs">
+      <div class="tab active" onclick="switchTab('general')">Cas Général (Maître)</div>
+      <div class="tab" onclick="switchTab('bouchage')">Bouchage</div>
+      <div class="tab" onclick="switchTab('etiquetage')">Étiquetage</div>
+      <div class="tab" onclick="switchTab('legende')">Légende / Variables</div>
+    </div>
+
+    <!-- ========== CAS GÉNÉRAL ========== -->
+    <div class="grafcet-view active" id="view-general">
+      <svg id="svg-general" viewBox="0 0 560 680" width="100%" style="max-width:560px">
+        <!-- vertical spine -->
+        <line x1="280" y1="40" x2="280" y2="620" stroke="#1e3050" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- STEP 0 (init) - double border -->
+        <g class="step-box initial active" id="gs0" onclick="clickStep('gs0')">
+          <rect x="240" y="40" width="80" height="50" rx="3" fill="rgba(0,212,255,0.2)" stroke="#00d4ff" stroke-width="2.5"/>
+          <rect x="244" y="44" width="72" height="42" rx="2" fill="none" stroke="#00d4ff" stroke-width="1"/>
+          <text x="280" y="62" text-anchor="middle" font-size="11" class="step-num" fill="#00d4ff">0</text>
+          <text x="280" y="79" text-anchor="middle" font-size="9" fill="#4a6080">Init</text>
+        </g>
+
+        <!-- t1: m.R.v (tapis arrêté, fin course haut, pince ouverte) -->
+        <line x1="280" y1="90" x2="280" y2="115" stroke="#ffd700" stroke-width="1.5" class="trans-line" id="tg01"/>
+        <rect x="255" y="112" width="50" height="8" rx="1" fill="none" stroke="#ffd700" stroke-width="1.5"/>
+        <text x="296" y="120" font-size="9" fill="#ffd700" id="cg01">m·R·v</text>
+        <line x1="280" y1="120" x2="280" y2="140" stroke="#ffd700" stroke-width="1.5" id="tg01b"/>
+
+        <!-- STEP 1: Avance tapis (T) -->
+        <g class="step-box inactive" id="gs1" onclick="clickStep('gs1')">
+          <rect x="230" y="140" width="80" height="50" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="270" y="163" text-anchor="middle" font-size="11" class="step-num" fill="#4a6080">1</text>
+          <text x="270" y="178" text-anchor="middle" font-size="8" fill="#4a6080">T (tapis)</text>
+          <line x1="310" y1="165" x2="340" y2="165" stroke="#4a6080" stroke-width="1"/>
+          <text x="345" y="169" font-size="9" fill="#4a6080">T</text>
+        </g>
+
+        <!-- t2: i (index = fin d'avance d'un pas) -->
+        <line x1="270" y1="190" x2="270" y2="210" stroke="#2a3a50" stroke-width="1.5" id="tg12"/>
+        <rect x="245" y="207" width="50" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1.5"/>
+        <text x="283" y="215" font-size="9" fill="#4a6080" id="cg12">i</text>
+        <line x1="270" y1="215" x2="270" y2="232" stroke="#2a3a50" stroke-width="1.5" id="tg12b"/>
+
+        <!-- DIV OU line (horizontal double) -->
+        <line x1="60" y1="235" x2="470" y2="235" stroke="#ff6b35" stroke-width="2.5" id="divOU"/>
+        <line x1="60" y1="240" x2="470" y2="240" stroke="#ff6b35" stroke-width="1"/>
+        <text x="475" y="239" font-size="9" fill="#ff6b35" font-weight="bold">Div OU</text>
+
+        <!-- Left branch: Pb.Pa => Step 2 wait -->
+        <!-- right branch: not(Pb.Pa) =>  Div ET -->
+
+        <!-- LEFT: condition Pb.Pa -->
+        <text x="110" y="255" font-size="9" fill="#ff6b35">P̄b·P̄a</text>
+        <!-- transition condition left branch -->
+        <line x1="130" y1="240" x2="130" y2="260" stroke="#ff6b35" stroke-width="1.5"/>
+        <rect x="105" y="258" width="50" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="123" y="266" font-size="9" fill="#4a6080">1</text>
+
+        <!-- STEP 2: Attente (left branch) -->
+        <g class="step-box inactive" id="gs2" onclick="clickStep('gs2')">
+          <rect x="80" y="270" width="100" height="50" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="130" y="293" text-anchor="middle" font-size="11" class="step-num" fill="#4a6080">2</text>
+          <text x="130" y="308" text-anchor="middle" font-size="8" fill="#4a6080">Attente</text>
+        </g>
+        <line x1="130" y1="320" x2="130" y2="350" stroke="#2a3a50" stroke-width="1.5"/>
+        <text x="140" y="340" font-size="9" fill="#4a6080">Pb·Pa</text>
+
+        <!-- CONV OU line -->
+        <line x1="60" y1="355" x2="470" y2="355" stroke="#ff6b35" stroke-width="2"/>
+        <line x1="60" y1="359" x2="470" y2="359" stroke="#ff6b35" stroke-width="1"/>
+        <text x="475" y="358" font-size="9" fill="#ff6b35" font-weight="bold">Conv OU</text>
+
+        <!-- back arrow from conv OU to before DIV ET area -->
+        <line x1="60" y1="355" x2="60" y2="240" stroke="#ff6b35" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <polygon points="60,240 56,250 64,250" fill="#ff6b35"/>
+
+        <!-- RIGHT: condition reaches DIV ET directly -->
+        <text x="340" y="255" font-size="9" fill="#ff6b35">Pb·Pa</text>
+        <line x1="380" y1="240" x2="380" y2="260" stroke="#ff6b35" stroke-width="1.5"/>
+
+        <!-- DIV ET double line -->
+        <line x1="160" y1="260" x2="470" y2="260" stroke="#00d4ff" stroke-width="2.5" id="divET"/>
+        <line x1="160" y1="265" x2="470" y2="265" stroke="#00d4ff" stroke-width="1"/>
+        <text x="475" y="264" font-size="9" fill="#00d4ff" font-weight="bold">Div ET</text>
+
+        <!-- BOUCHAGE branch (left of ET) -->
+        <line x1="220" y1="265" x2="220" y2="285" stroke="#00d4ff" stroke-width="1.5"/>
+        <g class="step-box inactive" id="gs3" onclick="clickStep('gs3')">
+          <rect x="155" y="285" width="100" height="42" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="205" y="304" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">3</text>
+          <text x="205" y="318" text-anchor="middle" font-size="8" fill="#4a6080">D/F Bouchage</text>
+        </g>
+        <text x="140" y="310" font-size="9" fill="#4a6080">D·F</text>
+
+        <line x1="205" y1="327" x2="205" y2="345" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="185" y="343" width="40" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="205" y="351" text-anchor="middle" font-size="9" fill="#4a6080" id="cg34">t₃</text>
+        <line x1="205" y1="351" x2="205" y2="365" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <g class="step-box inactive" id="gs4" onclick="clickStep('gs4')">
+          <rect x="155" y="365" width="100" height="42" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="205" y="384" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">4</text>
+          <text x="205" y="398" text-anchor="middle" font-size="8" fill="#4a6080">M (montée)</text>
+        </g>
+
+        <line x1="205" y1="407" x2="205" y2="425" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="185" y="423" width="40" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="205" y="431" text-anchor="middle" font-size="9" fill="#4a6080" id="cg45">t₄</text>
+        <line x1="205" y1="431" x2="205" y2="445" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <g class="step-box inactive" id="gs5" onclick="clickStep('gs5')">
+          <rect x="155" y="445" width="100" height="42" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="205" y="464" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">5</text>
+          <text x="205" y="478" text-anchor="middle" font-size="8" fill="#4a6080">Attente</text>
+        </g>
+
+        <!-- ÉTIQUETAGE branch (right of ET) -->
+        <line x1="380" y1="265" x2="380" y2="285" stroke="#00d4ff" stroke-width="1.5"/>
+        <g class="step-box inactive" id="gs6" onclick="clickStep('gs6')">
+          <rect x="320" y="285" width="100" height="42" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="370" y="304" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">6</text>
+          <text x="370" y="318" text-anchor="middle" font-size="8" fill="#4a6080">A (avance axe)</text>
+        </g>
+        <text x="427" y="310" font-size="9" fill="#4a6080">A</text>
+
+        <line x1="370" y1="327" x2="370" y2="345" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="350" y="343" width="40" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="370" y="351" text-anchor="middle" font-size="9" fill="#4a6080" id="cg67">t₅·d</text>
+        <line x1="370" y1="351" x2="370" y2="365" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <g class="step-box inactive" id="gs7" onclick="clickStep('gs7')">
+          <rect x="320" y="365" width="100" height="42" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="370" y="384" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">7</text>
+          <text x="370" y="398" text-anchor="middle" font-size="8" fill="#4a6080">R (retour axe)</text>
+        </g>
+        <text x="427" y="384" font-size="9" fill="#4a6080">R</text>
+
+        <line x1="370" y1="407" x2="370" y2="425" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="350" y="423" width="40" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="370" y="431" text-anchor="middle" font-size="9" fill="#4a6080" id="cg78">t₆·r</text>
+        <line x1="370" y1="431" x2="370" y2="445" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <g class="step-box inactive" id="gs8" onclick="clickStep('gs8')">
+          <rect x="320" y="445" width="100" height="42" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="370" y="464" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">8</text>
+          <text x="370" y="478" text-anchor="middle" font-size="8" fill="#4a6080">Fin étiquetage</text>
+        </g>
+
+        <!-- CONV ET -->
+        <line x1="155" y1="490" x2="425" y2="490" stroke="#00d4ff" stroke-width="2.5"/>
+        <line x1="155" y1="495" x2="425" y2="495" stroke="#00d4ff" stroke-width="1"/>
+        <text x="475" y="494" font-size="9" fill="#00d4ff" font-weight="bold">Conv ET</text>
+        <line x1="205" y1="487" x2="205" y2="490" stroke="#00d4ff" stroke-width="1.5"/>
+        <line x1="370" y1="487" x2="370" y2="490" stroke="#00d4ff" stroke-width="1.5"/>
+
+        <!-- merge and go to next cycle step -->
+        <line x1="290" y1="492" x2="290" y2="510" stroke="#00d4ff" stroke-width="1.5"/>
+        <rect x="265" y="508" width="50" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="290" y="516" text-anchor="middle" font-size="9" fill="#4a6080" id="cgend">t₇ = 1</text>
+        <line x1="290" y1="516" x2="290" y2="535" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- loop back to step 1 -->
+        <line x1="290" y1="535" x2="530" y2="535" stroke="#2a3a50" stroke-width="1.5"/>
+        <line x1="530" y1="535" x2="530" y2="155" stroke="#2a3a50" stroke-width="1.5"/>
+        <line x1="530" y1="155" x2="310" y2="155" stroke="#2a3a50" stroke-width="1.5"/>
+        <polygon points="310,155 320,150 320,160" fill="#2a3a50"/>
+        <text x="540" y="350" font-size="8" fill="#2a3a50" transform="rotate(90,540,350)">boucle cycle</text>
+      </svg>
+    </div>
+
+    <!-- ========== BOUCHAGE ========== -->
+    <div class="grafcet-view" id="view-bouchage">
+      <svg id="svg-bouchage" viewBox="0 0 500 700" width="100%" style="max-width:500px">
+        <text x="250" y="25" text-anchor="middle" font-size="13" fill="#00d4ff" font-weight="bold">GRAFCET — Atelier de Bouchage</text>
+        <text x="250" y="42" text-anchor="middle" font-size="9" fill="#4a6080">Tapis roulant + Boucheuse (moteur 2 sens) + Pince</text>
+
+        <!-- Step B0 -->
+        <g class="step-box inactive" id="bb0" onclick="clickStep('bb0')">
+          <rect x="195" y="60" width="80" height="50" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <rect x="199" y="64" width="72" height="42" rx="2" fill="none" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="83" text-anchor="middle" font-size="11" class="step-num" fill="#4a6080">B0</text>
+          <text x="235" y="98" text-anchor="middle" font-size="8" fill="#4a6080">Init Bouchage</text>
+        </g>
+        <!-- action: waiting state -->
+        <text x="285" y="93" font-size="8" fill="#4a6080">Pos. init</text>
+
+        <line x1="235" y1="110" x2="235" y2="135" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="210" y="133" width="50" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="141" text-anchor="middle" font-size="9" fill="#4a6080">m·R·v</text>
+        <line x1="235" y1="141" x2="235" y2="158" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- B1: Avance tapis -->
+        <g class="step-box inactive" id="bb1" onclick="clickStep('bb1')">
+          <rect x="175" y="158" width="120" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="178" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">B1</text>
+          <text x="235" y="193" text-anchor="middle" font-size="8" fill="#4a6080">Avance tapis (T)</text>
+        </g>
+        <text x="303" y="183" font-size="9" fill="#4a6080">T</text>
+
+        <line x1="235" y1="203" x2="235" y2="222" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="215" y="220" width="40" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="228" text-anchor="middle" font-size="9" fill="#4a6080">i</text>
+        <line x1="235" y1="228" x2="235" y2="245" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- B2: Descente boucheuse -->
+        <g class="step-box inactive" id="bb2" onclick="clickStep('bb2')">
+          <rect x="165" y="245" width="140" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="265" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">B2</text>
+          <text x="235" y="280" text-anchor="middle" font-size="8" fill="#4a6080">Descente (D)</text>
+        </g>
+        <text x="313" y="272" font-size="9" fill="#4a6080">D</text>
+
+        <line x1="235" y1="290" x2="235" y2="310" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="213" y="308" width="44" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="316" text-anchor="middle" font-size="9" fill="#4a6080">b (bas)</text>
+        <line x1="235" y1="316" x2="235" y2="333" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- B3: Fermeture pince (bouchage) -->
+        <g class="step-box inactive" id="bb3" onclick="clickStep('bb3')">
+          <rect x="155" y="333" width="160" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="353" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">B3</text>
+          <text x="235" y="368" text-anchor="middle" font-size="8" fill="#4a6080">Fermeture pince (F)</text>
+        </g>
+        <text x="323" y="358" font-size="9" fill="#4a6080">F</text>
+
+        <line x1="235" y1="378" x2="235" y2="398" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="212" y="396" width="46" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="404" text-anchor="middle" font-size="9" fill="#4a6080">t_b</text>
+        <line x1="235" y1="404" x2="235" y2="421" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- B4: Montée boucheuse -->
+        <g class="step-box inactive" id="bb4" onclick="clickStep('bb4')">
+          <rect x="165" y="421" width="140" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="441" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">B4</text>
+          <text x="235" y="456" text-anchor="middle" font-size="8" fill="#4a6080">Montée (M)</text>
+        </g>
+        <text x="313" y="448" font-size="9" fill="#4a6080">M</text>
+
+        <line x1="235" y1="466" x2="235" y2="486" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="213" y="484" width="44" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="492" text-anchor="middle" font-size="9" fill="#4a6080">h (haut)</text>
+        <line x1="235" y1="492" x2="235" y2="509" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- B5: Ouverture pince -->
+        <g class="step-box inactive" id="bb5" onclick="clickStep('bb5')">
+          <rect x="155" y="509" width="160" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="529" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">B5</text>
+          <text x="235" y="544" text-anchor="middle" font-size="8" fill="#4a6080">Ouverture pince (O)</text>
+        </g>
+        <text x="323" y="534" font-size="9" fill="#4a6080">O</text>
+
+        <line x1="235" y1="554" x2="235" y2="574" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="213" y="572" width="44" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="580" text-anchor="middle" font-size="9" fill="#4a6080">v (ouvert)</text>
+        <line x1="235" y1="580" x2="235" y2="595" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- loop arrow back -->
+        <line x1="235" y1="595" x2="450" y2="595" stroke="#2a3a50" stroke-width="1.5"/>
+        <line x1="450" y1="595" x2="450" y2="173" stroke="#2a3a50" stroke-width="1.5"/>
+        <line x1="450" y1="173" x2="295" y2="173" stroke="#2a3a50" stroke-width="1.5"/>
+        <polygon points="295,173 305,168 305,178" fill="#2a3a50"/>
+        <text x="460" y="400" font-size="8" fill="#2a3a50" transform="rotate(90,460,400)">cycle suivant</text>
+      </svg>
+    </div>
+
+    <!-- ========== ÉTIQUETAGE ========== -->
+    <div class="grafcet-view" id="view-etiquetage">
+      <svg id="svg-etiquetage" viewBox="0 0 500 580" width="100%" style="max-width:500px">
+        <text x="250" y="25" text-anchor="middle" font-size="13" fill="#00d4ff" font-weight="bold">GRAFCET — Atelier d'Étiquetage</text>
+        <text x="250" y="42" text-anchor="middle" font-size="9" fill="#4a6080">Axe d'étiquetage : A (avant) / R (arrière) · Capteurs: d (avant) r (arrière)</text>
+
+        <!-- E0: Init -->
+        <g class="step-box inactive" id="ee0" onclick="clickStep('ee0')">
+          <rect x="195" y="60" width="80" height="50" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <rect x="199" y="64" width="72" height="42" rx="2" fill="none" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="83" text-anchor="middle" font-size="11" class="step-num" fill="#4a6080">E0</text>
+          <text x="235" y="98" text-anchor="middle" font-size="8" fill="#4a6080">Init Étiquetage</text>
+        </g>
+
+        <line x1="235" y1="110" x2="235" y2="130" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="210" y="128" width="50" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="136" text-anchor="middle" font-size="9" fill="#4a6080">Pe·r</text>
+        <line x1="235" y1="136" x2="235" y2="153" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- E1: Avance axe (A) -->
+        <g class="step-box inactive" id="ee1" onclick="clickStep('ee1')">
+          <rect x="165" y="153" width="140" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="173" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">E1</text>
+          <text x="235" y="188" text-anchor="middle" font-size="8" fill="#4a6080">Avance axe (A)</text>
+        </g>
+        <text x="313" y="178" font-size="9" fill="#4a6080">A</text>
+
+        <line x1="235" y1="198" x2="235" y2="218" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="212" y="216" width="46" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="224" text-anchor="middle" font-size="9" fill="#4a6080">d (avant)</text>
+        <line x1="235" y1="224" x2="235" y2="241" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- E2: Pause (étiquette collée) -->
+        <g class="step-box inactive" id="ee2" onclick="clickStep('ee2')">
+          <rect x="155" y="241" width="160" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="261" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">E2</text>
+          <text x="235" y="276" text-anchor="middle" font-size="8" fill="#4a6080">Collage étiquette</text>
+        </g>
+
+        <line x1="235" y1="286" x2="235" y2="306" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="212" y="304" width="46" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="312" text-anchor="middle" font-size="9" fill="#4a6080">t_e</text>
+        <line x1="235" y1="312" x2="235" y2="329" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- E3: Retour axe (R) -->
+        <g class="step-box inactive" id="ee3" onclick="clickStep('ee3')">
+          <rect x="165" y="329" width="140" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="349" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">E3</text>
+          <text x="235" y="364" text-anchor="middle" font-size="8" fill="#4a6080">Retour axe (R)</text>
+        </g>
+        <text x="313" y="354" font-size="9" fill="#4a6080">R</text>
+
+        <line x1="235" y1="374" x2="235" y2="394" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="212" y="392" width="46" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="400" text-anchor="middle" font-size="9" fill="#4a6080">r (arrière)</text>
+        <line x1="235" y1="400" x2="235" y2="417" stroke="#2a3a50" stroke-width="1.5"/>
+
+        <!-- E4: Fin cycle étiquetage -->
+        <g class="step-box inactive" id="ee4" onclick="clickStep('ee4')">
+          <rect x="175" y="417" width="120" height="45" rx="3" fill="rgba(30,48,80,0.4)" stroke="#4a6080" stroke-width="1"/>
+          <text x="235" y="437" text-anchor="middle" font-size="10" class="step-num" fill="#4a6080">E4</text>
+          <text x="235" y="452" text-anchor="middle" font-size="8" fill="#4a6080">Fin étiquetage</text>
+        </g>
+
+        <line x1="235" y1="462" x2="235" y2="480" stroke="#2a3a50" stroke-width="1.5"/>
+        <rect x="215" y="478" width="40" height="8" rx="1" fill="none" stroke="#2a3a50" stroke-width="1"/>
+        <text x="235" y="486" text-anchor="middle" font-size="9" fill="#4a6080">1</text>
+
+        <!-- loop back -->
+        <line x1="235" y1="486" x2="430" y2="486" stroke="#2a3a50" stroke-width="1.5"/>
+        <line x1="430" y1="486" x2="430" y2="165" stroke="#2a3a50" stroke-width="1.5"/>
+        <line x1="430" y1="165" x2="305" y2="165" stroke="#2a3a50" stroke-width="1.5"/>
+        <polygon points="305,165 315,160 315,170" fill="#2a3a50"/>
+      </svg>
+    </div>
+
+    <!-- ========== LÉGENDE ========== -->
+    <div class="grafcet-view" id="view-legende">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:10px 0;">
+        <div>
+          <h3 style="color:var(--accent);font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-family:'Share Tech Mono',monospace;border-bottom:1px solid var(--border);padding-bottom:6px;">Variables d'entrée (Capteurs)</h3>
+          <table style="width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:0.78rem;">
+            <tr style="color:var(--accent2);"><th style="text-align:left;padding:6px;">Var.</th><th style="text-align:left;padding:6px;">Description</th></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">Pb</td><td style="padding:6px;color:var(--text);">Présence bouteille sous boucheuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">Pe</td><td style="padding:6px;color:var(--text);">Présence bouteille sous étiqueteuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">i</td><td style="padding:6px;color:var(--text);">Index moteur (fin d'avance 1 pas)</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">h</td><td style="padding:6px;color:var(--text);">Fin de course HAUT boucheuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">b</td><td style="padding:6px;color:var(--text);">Fin de course BAS boucheuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">d</td><td style="padding:6px;color:var(--text);">Fin de course AVANT axe étiqueteuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">r</td><td style="padding:6px;color:var(--text);">Fin de course ARRIÈRE axe étiqueteuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">v</td><td style="padding:6px;color:var(--text);">Pince ouverte (open)</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent3);">F</td><td style="padding:6px;color:var(--text);">Pince fermée (fermer)</td></tr>
+          </table>
+        </div>
+        <div>
+          <h3 style="color:var(--accent2);font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;font-family:'Share Tech Mono',monospace;border-bottom:1px solid var(--border);padding-bottom:6px;">Variables de sortie (Actionneurs)</h3>
+          <table style="width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:0.78rem;">
+            <tr style="color:var(--accent2);"><th style="text-align:left;padding:6px;">Var.</th><th style="text-align:left;padding:6px;">Description</th></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">T</td><td style="padding:6px;color:var(--text);">Moteur tapis roulant (avance)</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">m</td><td style="padding:6px;color:var(--text);">Moteur tapis (arrêté si m=0)</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">D</td><td style="padding:6px;color:var(--text);">Descente boucheuse (sens 1)</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">M</td><td style="padding:6px;color:var(--text);">Montée boucheuse (sens 2)</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">A</td><td style="padding:6px;color:var(--text);">Avance axe étiqueteuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">R</td><td style="padding:6px;color:var(--text);">Retour axe étiqueteuse</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px;color:var(--accent);">O</td><td style="padding:6px;color:var(--text);">Ouverture pince</td></tr>
+          </table>
+          <h3 style="color:var(--accent);font-size:0.85rem;letter-spacing:2px;text-transform:uppercase;margin:16px 0 12px;font-family:'Share Tech Mono',monospace;border-bottom:1px solid var(--border);padding-bottom:6px;">Notation GRAFCET</h3>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.75rem;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="30" height="20"><rect x="2" y="2" width="26" height="16" rx="2" fill="none" stroke="#00d4ff" stroke-width="2"/><rect x="4" y="4" width="22" height="12" rx="1" fill="none" stroke="#00d4ff" stroke-width="1"/></svg><span style="color:var(--text);">Étape initiale (double contour)</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="30" height="20"><rect x="2" y="2" width="26" height="16" rx="2" fill="rgba(0,212,255,0.2)" stroke="#00d4ff" stroke-width="2"/></svg><span style="color:var(--text);">Étape active</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="30" height="20"><line x1="15" y1="0" x2="15" y2="6" stroke="#ffd700" stroke-width="1.5"/><rect x="5" y="6" width="20" height="8" fill="none" stroke="#ffd700" stroke-width="1.5"/><line x1="15" y1="14" x2="15" y2="20" stroke="#ffd700" stroke-width="1.5"/></svg><span style="color:var(--text);">Transition (réceptivité)</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="30" height="10"><line x1="0" y1="2" x2="30" y2="2" stroke="#ff6b35" stroke-width="2.5"/><line x1="0" y1="6" x2="30" y2="6" stroke="#ff6b35" stroke-width="1"/></svg><span style="color:var(--text);">Divergence/Convergence OU</span></div>
+            <div style="display:flex;align-items:center;gap:10px;"><svg width="30" height="10"><line x1="0" y1="2" x2="30" y2="2" stroke="#00d4ff" stroke-width="2.5"/><line x1="0" y1="6" x2="30" y2="6" stroke="#00d4ff" stroke-width="1"/></svg><span style="color:var(--text);">Divergence/Convergence ET</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="side-panel">
+    <div class="panel-section">
+      <h3>Capteurs / Entrées</h3>
+      <div class="sensor-grid" id="sensorGrid">
+        <div class="sensor" id="sen-Pb" onclick="toggleSensor('Pb')">
+          <div class="sensor-name">Pb</div>
+          <div class="sensor-desc">Bouteille / Boucheuse</div>
+          <div class="sensor-state">OFF</div>
+        </div>
+        <div class="sensor" id="sen-Pe" onclick="toggleSensor('Pe')">
+          <div class="sensor-name">Pe</div>
+          <div class="sensor-desc">Bouteille / Étiqueteuse</div>
+          <div class="sensor-state">OFF</div>
+        </div>
+        <div class="sensor active" id="sen-h" onclick="toggleSensor('h')">
+          <div class="sensor-name">h</div>
+          <div class="sensor-desc">Fin course HAUT</div>
+          <div class="sensor-state">ON</div>
+        </div>
+        <div class="sensor" id="sen-b" onclick="toggleSensor('b')">
+          <div class="sensor-name">b</div>
+          <div class="sensor-desc">Fin course BAS</div>
+          <div class="sensor-state">OFF</div>
+        </div>
+        <div class="sensor active" id="sen-r" onclick="toggleSensor('r')">
+          <div class="sensor-name">r</div>
+          <div class="sensor-desc">FC arrière étiq.</div>
+          <div class="sensor-state">ON</div>
+        </div>
+        <div class="sensor" id="sen-d" onclick="toggleSensor('d')">
+          <div class="sensor-name">d</div>
+          <div class="sensor-desc">FC avant étiq.</div>
+          <div class="sensor-state">OFF</div>
+        </div>
+        <div class="sensor active" id="sen-v" onclick="toggleSensor('v')">
+          <div class="sensor-name">v</div>
+          <div class="sensor-desc">Pince ouverte</div>
+          <div class="sensor-state">ON</div>
+        </div>
+        <div class="sensor" id="sen-i" onclick="toggleSensor('i')">
+          <div class="sensor-name">i</div>
+          <div class="sensor-desc">Index moteur</div>
+          <div class="sensor-state">OFF</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Sorties Actives</h3>
+      <div class="output-list" id="outputList">
+        <div class="output-item"><span class="output-label">T — Tapis</span><div class="output-indicator" id="out-T"></div></div>
+        <div class="output-item"><span class="output-label">D — Descente</span><div class="output-indicator" id="out-D"></div></div>
+        <div class="output-item"><span class="output-label">M — Montée</span><div class="output-indicator" id="out-M"></div></div>
+        <div class="output-item"><span class="output-label">A — Avance axe</span><div class="output-indicator" id="out-A"></div></div>
+        <div class="output-item"><span class="output-label">R — Retour axe</span><div class="output-indicator" id="out-R"></div></div>
+        <div class="output-item"><span class="output-label">F — Pince fermée</span><div class="output-indicator" id="out-F"></div></div>
+        <div class="output-item"><span class="output-label">O — Pince ouverte</span><div class="output-indicator" id="out-O"></div></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Journal d'événements</h3>
+      <div class="log-area" id="logArea"></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Légende couleurs</h3>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box" style="background:rgba(0,212,255,0.2);border-color:#00d4ff;"></div><span style="font-size:0.72rem;">Étape active</span></div>
+        <div class="legend-item"><div class="legend-box" style="background:rgba(30,48,80,0.4);border-color:#4a6080;"></div><span style="font-size:0.72rem;">Étape inactive</span></div>
+        <div class="legend-item"><div class="legend-box" style="background:rgba(255,215,0,0.2);border-color:#ffd700;"></div><span style="font-size:0.72rem;">Transition franchissable</span></div>
+        <div class="legend-item"><div class="legend-box" style="background:rgba(255,107,53,0.2);border-color:#ff6b35;"></div><span style="font-size:0.72rem;">Divergence/Conv OU</span></div>
+        <div class="legend-item"><div class="legend-box" style="background:rgba(0,212,255,0.2);border-color:#00d4ff;height:6px;"></div><span style="font-size:0.72rem;">Divergence/Conv ET (parallèle)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================
+// STATE MACHINE
+// =========================================================
+const sensors = { Pb: false, Pe: false, h: true, b: false, r: true, d: false, v: true, i: false };
+
+// General GRAFCET steps active set
+let activeSteps = new Set(['gs0']);
+let bouchageSteps = new Set(['bb0']);
+let etiquetageSteps = new Set(['ee0']);
+
+let running = false;
+let autoMode = false;
+let autoTimer = null;
+let cycleCount = 0;
+let speed = 1200;
+
+// Phase tracking for general GRAFCET
+// 0 = init, 1 = tapis running, 2a = wait (no bottles), 2 = parallel ET active, end = conv ET
+let generalPhase = 0; // 0-10 steps
+let bouchagePhase = 0;
+let etiquetagePhase = 0;
+
+// Step definitions for animation
+const GENERAL_SEQ = [
+  { steps: ['gs0'], outputs: [], phase: 'Init', cond: 'Départ (m·R·v)' },
+  { steps: ['gs1'], outputs: ['T'], phase: 'Avance Tapis', cond: 'Attendre index (i)' },
+  { steps: ['gs3','gs6'], outputs: ['D','A'], phase: 'Parallèle ET: Bouchage+Étiquetage', cond: 'Attendre fins branches' },
+  { steps: ['gs4','gs7'], outputs: ['M','R'], phase: 'Montée + Retour axe', cond: 'Attendre h et r' },
+  { steps: ['gs5','gs8'], outputs: ['O'], phase: 'Fin branches', cond: 'Convergence ET' },
+  { steps: ['gs0'], outputs: [], phase: 'Retour Init', cond: 'Nouveau cycle' },
+];
+
+const BOUCHAGE_SEQ = [
+  { steps: ['bb0'], outputs: [], phase: 'Init Bouchage' },
+  { steps: ['bb1'], outputs: ['T'], phase: 'Avance tapis' },
+  { steps: ['bb2'], outputs: ['D'], phase: 'Descente boucheuse' },
+  { steps: ['bb3'], outputs: ['F'], phase: 'Fermeture pince (bouchage)' },
+  { steps: ['bb4'], outputs: ['M'], phase: 'Montée boucheuse' },
+  { steps: ['bb5'], outputs: ['O'], phase: 'Ouverture pince' },
+];
+
+const ETIQUETAGE_SEQ = [
+  { steps: ['ee0'], outputs: [], phase: 'Init Étiquetage' },
+  { steps: ['ee1'], outputs: ['A'], phase: 'Avance axe' },
+  { steps: ['ee2'], outputs: [], phase: 'Collage étiquette' },
+  { steps: ['ee3'], outputs: ['R'], phase: 'Retour axe' },
+  { steps: ['ee4'], outputs: [], phase: 'Fin étiquetage' },
+];
+
+let gStep = 0, bStep = 0, eStep = 0;
+let currentOutputs = new Set();
+
+function log(msg, type='info') {
+  const el = document.getElementById('logArea');
+  const t = new Date().toLocaleTimeString('fr', { hour12: false });
+  const div = document.createElement('div');
+  div.className = `log-entry ${type}`;
+  div.textContent = `[${t}] ${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateStepUI(stepId, active) {
+  const el = document.getElementById(stepId);
+  if (!el) return;
+  if (active) {
+    el.classList.add('active');
+    el.classList.remove('inactive');
+    const rect = el.querySelector('rect');
+    const num = el.querySelector('.step-num');
+    if (rect) { rect.style.fill = 'rgba(0,212,255,0.2)'; rect.style.stroke = '#00d4ff'; rect.style.strokeWidth = '2.5'; rect.style.filter = 'drop-shadow(0 0 8px rgba(0,212,255,0.7))'; }
+    if (num) num.style.fill = '#00d4ff';
+  } else {
+    el.classList.remove('active');
+    el.classList.add('inactive');
+    const rect = el.querySelector('rect');
+    const num = el.querySelector('.step-num');
+    if (rect) { rect.style.fill = 'rgba(30,48,80,0.4)'; rect.style.stroke = '#4a6080'; rect.style.strokeWidth = '1'; rect.style.filter = ''; }
+    if (num) num.style.fill = '#4a6080';
+  }
+}
+
+function applyStep(seq, idx, allIds) {
+  const s = seq[idx % seq.length];
+  allIds.forEach(id => updateStepUI(id, false));
+  s.steps.forEach(id => updateStepUI(id, true));
+  return s;
+}
+
+function updateOutputs(outputs) {
+  currentOutputs = new Set(outputs);
+  ['T','D','M','A','R','F','O'].forEach(o => {
+    const el = document.getElementById('out-' + o);
+    if (el) el.classList.toggle('on', currentOutputs.has(o));
+  });
+}
+
+function updateStatus() {
+  const allActive = [];
+  if (gStep >= 0) {
+    const gs = GENERAL_SEQ[gStep % GENERAL_SEQ.length];
+    allActive.push(...gs.steps);
+    document.getElementById('stPhase').textContent = gs.phase;
+  }
+  document.getElementById('stSteps').textContent = allActive.join(', ') || '—';
+  document.getElementById('stCycle').textContent = cycleCount;
+  document.getElementById('stState').textContent = running ? (autoMode ? 'AUTO' : 'MANUEL') : 'ARRÊT';
+}
+
+function advanceGeneral() {
+  const allG = ['gs0','gs1','gs2','gs3','gs4','gs5','gs6','gs7','gs8'];
+  gStep = (gStep + 1) % GENERAL_SEQ.length;
+  if (gStep === 0) cycleCount++;
+  const s = applyStep(GENERAL_SEQ, gStep, allG);
+  updateOutputs(s.outputs);
+  log(`Étape → ${s.steps.join('+')} | ${s.phase}`, gStep === 0 ? 'warn' : 'ok');
+  updateStatus();
+
+  // sync bouchage tab
+  if (gStep === 2) { bStep = 2; applyStep(BOUCHAGE_SEQ, 2, ['bb0','bb1','bb2','bb3','bb4','bb5']); }
+  else if (gStep === 3) { bStep = 4; applyStep(BOUCHAGE_SEQ, 4, ['bb0','bb1','bb2','bb3','bb4','bb5']); }
+  else if (gStep === 4) { bStep = 5; applyStep(BOUCHAGE_SEQ, 5, ['bb0','bb1','bb2','bb3','bb4','bb5']); }
+  else if (gStep === 0) { bStep = 0; applyStep(BOUCHAGE_SEQ, 0, ['bb0','bb1','bb2','bb3','bb4','bb5']); eStep = 0; applyStep(ETIQUETAGE_SEQ, 0, ['ee0','ee1','ee2','ee3','ee4']); }
+
+  // sync etiquetage tab
+  if (gStep === 2) { eStep = 1; applyStep(ETIQUETAGE_SEQ, 1, ['ee0','ee1','ee2','ee3','ee4']); }
+  else if (gStep === 3) { eStep = 3; applyStep(ETIQUETAGE_SEQ, 3, ['ee0','ee1','ee2','ee3','ee4']); }
+  else if (gStep === 4) { eStep = 4; applyStep(ETIQUETAGE_SEQ, 4, ['ee0','ee1','ee2','ee3','ee4']); }
+}
+
+function startCycle() {
+  if (running) return;
+  running = true;
+  // set initial sensors for launch
+  sensors.h = true; sensors.v = true; sensors.r = true;
+  updateAllSensors();
+  log('Cycle démarré — conditions initiales vérifiées', 'ok');
+  document.getElementById('btnStart').classList.add('active');
+  // activate step 1
+  advanceGeneral();
+  updateStatus();
+}
+
+function stepOnce() {
+  if (!running) { startCycle(); return; }
+  advanceGeneral();
+}
+
+function toggleAuto() {
+  autoMode = !autoMode;
+  const btn = document.getElementById('btnAuto');
+  btn.classList.toggle('active', autoMode);
+  if (autoMode) {
+    if (!running) startCycle();
+    scheduleAuto();
+    log('Mode automatique activé', 'warn');
+  } else {
+    clearTimeout(autoTimer);
+    log('Mode automatique désactivé', 'info');
+  }
+  updateStatus();
+}
+
+function scheduleAuto() {
+  if (!autoMode) return;
+  autoTimer = setTimeout(() => {
+    advanceGeneral();
+    scheduleAuto();
+  }, speed);
+}
+
+function resetAll() {
+  autoMode = false;
+  running = false;
+  clearTimeout(autoTimer);
+  gStep = 0; bStep = 0; eStep = 0; cycleCount = 0;
+  const allG = ['gs0','gs1','gs2','gs3','gs4','gs5','gs6','gs7','gs8'];
+  const allB = ['bb0','bb1','bb2','bb3','bb4','bb5'];
+  const allE = ['ee0','ee1','ee2','ee3','ee4'];
+  allG.forEach(id => updateStepUI(id, false));
+  allB.forEach(id => updateStepUI(id, false));
+  allE.forEach(id => updateStepUI(id, false));
+  updateStepUI('gs0', true);
+  updateStepUI('bb0', true);
+  updateStepUI('ee0', true);
+  updateOutputs([]);
+  document.getElementById('btnStart').classList.remove('active');
+  document.getElementById('btnAuto').classList.remove('active');
+  // reset sensors to initial
+  sensors.Pb = false; sensors.Pe = false; sensors.h = true; sensors.b = false;
+  sensors.r = true; sensors.d = false; sensors.v = true; sensors.i = false;
+  updateAllSensors();
+  log('Système réinitialisé', 'warn');
+  updateStatus();
+}
+
+function toggleSensor(name) {
+  sensors[name] = !sensors[name];
+  const el = document.getElementById('sen-' + name);
+  if (el) {
+    el.classList.toggle('active', sensors[name]);
+    el.querySelector('.sensor-state').textContent = sensors[name] ? 'ON' : 'OFF';
+  }
+  log(`Capteur ${name} → ${sensors[name] ? 'ON' : 'OFF'}`, 'info');
+}
+
+function updateAllSensors() {
+  Object.keys(sensors).forEach(name => {
+    const el = document.getElementById('sen-' + name);
+    if (el) {
+      el.classList.toggle('active', sensors[name]);
+      el.querySelector('.sensor-state').textContent = sensors[name] ? 'ON' : 'OFF';
+    }
+  });
+}
+
+function clickStep(id) {
+  log(`Étape ${id} sélectionnée (info)`, 'info');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const tabs = ['general','bouchage','etiquetage','legende'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.grafcet-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + tab).classList.add('active');
+}
+
+// Speed slider
+document.getElementById('speedSlider').addEventListener('input', function() {
+  speed = +this.value;
+  document.getElementById('speedVal').textContent = (speed/1000).toFixed(1) + 's';
+  if (autoMode) { clearTimeout(autoTimer); scheduleAuto(); }
+});
+
+// Init
+updateStepUI('gs0', true);
+updateStepUI('bb0', true);
+updateStepUI('ee0', true);
+log('Système prêt — Appuyer sur DÉMARRER', 'info');
+updateStatus();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIMULATION VISUELLE — LIGNE PHARMACEUTIQUE
+     ═══════════════════════════════════════════════════════════ -->
+<div id="simSection" style="
+  background: linear-gradient(180deg, #060c1a 0%, #080f1e 100%);
+  border-top: 2px solid #00d4ff;
+  padding: 0;
+">
+  <!-- Sim Header -->
+  <div style="
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 30px;
+    background: #0a1525;
+    border-bottom: 1px solid #1e2d4a;
+    flex-wrap: wrap; gap: 10px;
+  ">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#39ff14;box-shadow:0 0 8px #39ff14;" id="simDot"></div>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:#00d4ff;letter-spacing:3px;text-transform:uppercase;">
+        Simulation — Ligne Pharmaceutique
+      </span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="simPhaseLbl" style="font-family:'Share Tech Mono',monospace;font-size:0.72rem;color:#ffd700;letter-spacing:2px;">EN ATTENTE</span>
+      <button onclick="simTogglePlay()" id="simPlayBtn" style="
+        font-family:'Share Tech Mono',monospace;font-size:0.72rem;
+        padding:6px 14px;border:1px solid #39ff14;border-radius:3px;
+        background:rgba(57,255,20,0.1);color:#39ff14;cursor:pointer;letter-spacing:1px;
+      ">▶ PLAY</button>
+      <button onclick="simReset()" style="
+        font-family:'Share Tech Mono',monospace;font-size:0.72rem;
+        padding:6px 14px;border:1px solid #ff6b35;border-radius:3px;
+        background:rgba(255,107,53,0.1);color:#ff6b35;cursor:pointer;letter-spacing:1px;
+      ">↺ RESET</button>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <canvas id="simCanvas" style="width:100%;display:block;cursor:default;"></canvas>
+
+  <!-- Sim legend -->
+  <div style="
+    display:flex;gap:20px;padding:10px 30px;
+    background:#060c14;border-top:1px solid #1e2d4a;
+    font-family:'Share Tech Mono',monospace;font-size:0.68rem;
+    flex-wrap:wrap;color:#4a6080;
+  ">
+    <span>🟦 Bouteille vide</span>
+    <span>🟩 Bouchée</span>
+    <span>🟨 Étiquetée (prête)</span>
+    <span>⬛ Zone de remplissage</span>
+    <span style="color:#00d4ff;">→ Avancement série en parallèle</span>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// SIMULATION CANVAS ENGINE
+// ═══════════════════════════════════════════
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+// Responsive sizing
+function resizeCanvas() {
+  const w = canvas.parentElement.clientWidth;
+  canvas.width = w;
+  canvas.height = Math.max(260, Math.min(340, w * 0.28));
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); });
+
+// ── Colours ──
+const C = {
+  bg:        '#06101e',
+  belt:      '#0f1e35',
+  beltLine:  '#1a3050',
+  beltEdge:  '#0a1525',
+  beltStrip: '#162540',
+  wall:      '#0d1e32',
+  wallLight: '#1a3060',
+  bottle:    '#1a6080',
+  bottleGlass:'rgba(100,200,255,0.15)',
+  bottleCap: '#39ff14',
+  bottleLbl: '#ffd700',
+  bottleFull:'#1a8060',
+  liquid:    'rgba(0,220,120,0.7)',
+  machine:   '#0f2040',
+  machineAcc:'#00d4ff',
+  capper:    '#1a3a6a',
+  capperArm: '#00d4ff',
+  labeler:   '#1a2a50',
+  labelerArm:'#ff6b35',
+  station:   '#0a1828',
+  glow:      'rgba(0,212,255,0.3)',
+  glowG:     'rgba(57,255,20,0.3)',
+  glowY:     'rgba(255,215,0,0.3)',
+  text:      '#c8d8f0',
+  muted:     '#2a4060',
+  particle:  '#39ff14',
+};
+
+// ── Layout constants (computed from canvas size) ──
+function L() {
+  const W = canvas.width, H = canvas.height;
+  const beltY = H * 0.62;       // belt top surface
+  const beltH = H * 0.08;
+  const beltBot = beltY + beltH;
+  const bottleW = W * 0.048;
+  const bottleH = H * 0.32;
+  const bottleY = beltY - bottleH;
+  // Station X positions
+  const margin = W * 0.08;
+  const spacing = (W - margin*2) / 4;
+  return { W, H, beltY, beltH, beltBot, bottleW, bottleH, bottleY, margin, spacing,
+    stationX: [
+      margin,                    // 0: arrival zone
+      margin + spacing,          // 1: filling station
+      margin + spacing * 2,      // 2: capping station
+      margin + spacing * 3,      // 3: labeling station
+    ]
+  };
+}
+
+// ── Simulation state ──
+let simRunning = false;
+let simAnim = null;
+let simTime = 0;          // ms elapsed
+let simPhase = 0;         // 0..N
+let simCycleN = 0;
+
+// Belt scroll
+let beltOffset = 0;
+const BELT_SPEED = 0.4; // px per frame when moving
+
+// Bottles on line: array of { x, state, animT, stateT }
+// state: 'empty','filling','filled','capping','capped','labeling','done'
+let bottles = [];
+let bottleSpawnTimer = 0;
+const BOTTLE_INTERVAL = 180; // frames between spawns
+
+// Particles
+let particles = [];
+
+// Machine animations
+const machines = {
+  filler:  { active: false, armY: 0, armTarget: 0, glow: 0 },
+  capper:  { active: false, armY: 0, armTarget: 0, glow: 0, capAngle: 0 },
+  labeler: { active: false, armX: 0, armTarget: 0, glow: 0 },
+};
+
+// Phase labels
+const SIM_PHASES = [
+  'EN ATTENTE',
+  'AVANCE TAPIS',
+  'REMPLISSAGE EN COURS',
+  'BOUCHAGE + ÉTIQUETAGE (PARALLÈLE)',
+  'MONTÉE BOUCHEUSE / RETOUR AXE',
+  'CYCLE TERMINÉ — PROCHAINE BOUTEILLE',
+];
+
+let frameCount = 0;
+
+// ── Bottle factory ──
+function spawnBottle() {
+  const l = L();
+  bottles.push({
+    x: -l.bottleW * 2,
+    state: 'empty',
+    stateT: 0,
+    fillLevel: 0,
+    hasLabel: false,
+    id: simCycleN++,
+  });
+}
+
+function getTargetX(state, l) {
+  const sx = l.stationX;
+  if (state === 'empty' || state === 'arriving') return sx[1] - l.bottleW/2;
+  if (state === 'filling' || state === 'filled')  return sx[1] - l.bottleW/2;
+  if (state === 'moving_to_cap')                  return sx[2] - l.bottleW/2;
+  if (state === 'capping' || state === 'capped')  return sx[2] - l.bottleW/2;
+  if (state === 'moving_to_lbl')                  return sx[3] - l.bottleW/2;
+  if (state === 'labeling' || state === 'done')   return sx[3] - l.bottleW/2;
+  if (state === 'exiting')                        return l.W + l.bottleW * 2;
+  return sx[0];
+}
+
+// ── Update loop ──
+function simUpdate() {
+  if (!simRunning) return;
+  frameCount++;
+  simTime += 16;
+
+  const l = L();
+
+  // Spawn bottles periodically
+  bottleSpawnTimer++;
+  if (bottleSpawnTimer >= BOTTLE_INTERVAL) {
+    bottleSpawnTimer = 0;
+    spawnBottle();
+  }
+
+  // Belt scroll (always when sim running)
+  beltOffset = (beltOffset + BELT_SPEED) % (l.W * 0.12);
+
+  // Update each bottle
+  bottles.forEach(b => {
+    b.stateT++;
+    const tx = getTargetX(b.state, l);
+    const dx = tx - b.x;
+
+    // Move toward target
+    if (Math.abs(dx) > 1) {
+      b.x += dx * 0.04 + Math.sign(dx) * 1.2;
+    } else {
+      b.x = tx;
+
+      // State transitions
+      if (b.state === 'empty') {
+        b.state = 'filling'; b.stateT = 0;
+        machines.filler.active = true; machines.filler.armTarget = 1;
+        emitParticles(b.x + l.bottleW/2, l.bottleY + l.bottleH * 0.3, 'liquid');
+      } else if (b.state === 'filling' && b.stateT > 90) {
+        b.fillLevel = Math.min(1, b.fillLevel + 0.012);
+        if (b.fillLevel >= 1) { b.state = 'filled'; b.stateT = 0; machines.filler.active = false; machines.filler.armTarget = 0; }
+      } else if (b.state === 'filled' && b.stateT > 30) {
+        b.state = 'moving_to_cap'; b.stateT = 0;
+      } else if (b.state === 'moving_to_cap' && Math.abs(dx) < 2) {
+        b.state = 'capping'; b.stateT = 0;
+        machines.capper.active = true; machines.capper.armTarget = 1;
+      } else if (b.state === 'capping' && b.stateT > 70) {
+        b.state = 'capped'; b.stateT = 0;
+        machines.capper.active = false; machines.capper.armTarget = 0;
+        emitParticles(b.x + l.bottleW/2, l.bottleY + l.bottleH * 0.05, 'cap');
+      } else if (b.state === 'capped' && b.stateT > 30) {
+        b.state = 'moving_to_lbl'; b.stateT = 0;
+      } else if (b.state === 'moving_to_lbl' && Math.abs(dx) < 2) {
+        b.state = 'labeling'; b.stateT = 0;
+        machines.labeler.active = true; machines.labeler.armTarget = 1;
+      } else if (b.state === 'labeling' && b.stateT > 80) {
+        b.hasLabel = true; b.state = 'done'; b.stateT = 0;
+        machines.labeler.active = false; machines.labeler.armTarget = 0;
+        emitParticles(b.x + l.bottleW/2, l.bottleY + l.bottleH * 0.55, 'label');
+      } else if (b.state === 'done' && b.stateT > 60) {
+        b.state = 'exiting'; b.stateT = 0;
+      }
+    }
+
+    // fill level animation during filling
+    if (b.state === 'filling') {
+      b.fillLevel = Math.min(1, b.stateT / 90);
+    }
+  });
+
+  // Remove exited bottles
+  bottles = bottles.filter(b => b.x < l.W + l.bottleW * 3);
+
+  // Machine arm animations
+  ['filler','capper','labeler'].forEach(k => {
+    const m = machines[k];
+    m.armY += (m.armTarget - m.armY) * 0.08;
+    if (m.active) m.glow = Math.min(1, m.glow + 0.05);
+    else m.glow = Math.max(0, m.glow - 0.03);
+    if (k === 'capper' && m.active) m.capAngle += 0.12;
+  });
+  machines.labeler.armX = machines.labeler.armY; // reuse armY for labeler X slide
+
+  // Update particles
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15;
+    p.life -= p.decay; p.r = Math.max(0, p.r - 0.03);
+  });
+
+  // Sync GRAFCET phase label
+  const active = bottles.some(b => b.state !== 'empty');
+  if (active) {
+    const hasFilling = bottles.some(b => b.state === 'filling');
+    const hasCapping = bottles.some(b => b.state === 'capping');
+    const hasLabeling = bottles.some(b => b.state === 'labeling');
+    if (hasCapping && hasLabeling) simPhase = 3;
+    else if (hasFilling) simPhase = 2;
+    else simPhase = 1;
+  } else {
+    simPhase = 0;
+  }
+  document.getElementById('simPhaseLbl').textContent = SIM_PHASES[simPhase] || 'EN COURS';
+}
+
+function emitParticles(x, y, type) {
+  const colors = { liquid: '#00e87a', cap: '#39ff14', label: '#ffd700' };
+  const col = colors[type] || '#fff';
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 3,
+      vy: -(Math.random() * 3 + 1),
+      r: Math.random() * 3 + 1,
+      color: col,
+      life: 1,
+      decay: Math.random() * 0.03 + 0.02,
+    });
+  }
+}
+
+// ── Draw ──
+function drawBottle(b, l) {
+  const x = b.x, bw = l.bottleW, bh = l.bottleH, by = l.bottleY;
+  const neckH = bh * 0.22, neckW = bw * 0.45;
+  const bodyH = bh * 0.72;
+
+  ctx.save();
+
+  // Determine bottle colour by state
+  let bodyCol = '#1a5070';
+  if (b.state === 'filling') bodyCol = '#1a6080';
+  if (['filled','moving_to_cap'].includes(b.state)) bodyCol = '#1a7060';
+  if (['capping','capped','moving_to_lbl'].includes(b.state)) bodyCol = '#1a8060';
+  if (['labeling','done','exiting'].includes(b.state)) bodyCol = '#1a9070';
+
+  // Body
+  ctx.beginPath();
+  ctx.roundRect(x, by + neckH, bw, bodyH, [0, 0, 4, 4]);
+  ctx.fillStyle = bodyCol;
+  ctx.fill();
+
+  // Glass sheen
+  const sheen = ctx.createLinearGradient(x, by, x+bw, by);
+  sheen.addColorStop(0, 'rgba(255,255,255,0.12)');
+  sheen.addColorStop(0.35, 'rgba(255,255,255,0.04)');
+  sheen.addColorStop(1, 'rgba(0,0,0,0.1)');
+  ctx.fillStyle = sheen;
+  ctx.fill();
+
+  // Liquid fill
+  if (b.fillLevel > 0) {
+    const liqH = bodyH * 0.82 * b.fillLevel;
+    const liqY = by + neckH + bodyH - liqH;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x + 2, liqY, bw - 4, liqH, [0,0,3,3]);
+    ctx.clip();
+    const lg = ctx.createLinearGradient(x, liqY, x, liqY + liqH);
+    lg.addColorStop(0, 'rgba(0,220,120,0.5)');
+    lg.addColorStop(1, 'rgba(0,180,80,0.85)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(x + 2, liqY, bw - 4, liqH);
+    // wave
+    ctx.beginPath();
+    const waveY = liqY + 2;
+    ctx.moveTo(x+2, waveY);
+    for (let wx = x+2; wx < x+bw-2; wx += 2) {
+      ctx.lineTo(wx, waveY + Math.sin((wx + frameCount*0.1)*0.4)*2);
+    }
+    ctx.lineTo(x+bw-2, waveY + 4);
+    ctx.lineTo(x+bw-2, liqY-2);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,240,140,0.3)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Neck
+  ctx.beginPath();
+  ctx.roundRect(x + (bw - neckW)/2, by, neckW, neckH + 2, [3,3,0,0]);
+  ctx.fillStyle = bodyCol;
+  ctx.fill();
+
+  // Cap
+  if (['capped','moving_to_lbl','labeling','done','exiting'].includes(b.state)) {
+    ctx.beginPath();
+    ctx.roundRect(x + (bw - neckW)/2 - 1, by - bh*0.06, neckW + 2, bh*0.07, 2);
+    ctx.fillStyle = '#39ff14';
+    ctx.fill();
+    ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Label
+  if (b.hasLabel) {
+    const lbY = by + neckH + bodyH * 0.25;
+    const lbH = bodyH * 0.35;
+    ctx.beginPath();
+    ctx.roundRect(x + 2, lbY, bw - 4, lbH, 2);
+    ctx.fillStyle = '#ffd700';
+    ctx.globalAlpha = 0.92;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${Math.max(6, bw * 0.22)}px 'Share Tech Mono',monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Rx', x + bw/2, lbY + lbH*0.5 + 2);
+    ctx.font = `${Math.max(4, bw * 0.15)}px 'Share Tech Mono',monospace`;
+    ctx.fillText('PHARMA', x + bw/2, lbY + lbH*0.78);
+    ctx.textAlign = 'left';
+  }
+
+  // Border
+  ctx.beginPath();
+  ctx.roundRect(x, by + neckH, bw, bodyH, [0,0,4,4]);
+  ctx.strokeStyle = 'rgba(0,180,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawMachineFiller(l) {
+  const m = machines.filler;
+  const sx = l.stationX[1];
+  const W = canvas.width, H = canvas.height;
+  const armDown = m.armY * l.bottleH * 0.55;
+  const baseY = l.bottleY - l.bottleH * 0.2;
+  const nozzleY = baseY + armDown;
+  const cx = sx;
+
+  ctx.save();
+  // Gantry arm
+  ctx.strokeStyle = m.active ? '#00d4ff' : '#1a3050';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = m.active ? '#00d4ff' : 'transparent';
+  ctx.shadowBlur = m.active ? 10 : 0;
+  ctx.beginPath();
+  ctx.moveTo(cx, baseY - l.H*0.18);
+  ctx.lineTo(cx, nozzleY);
+  ctx.stroke();
+
+  // Nozzle head
+  ctx.fillStyle = m.active ? '#00d4ff' : '#1a4060';
+  ctx.beginPath();
+  ctx.roundRect(cx - l.bottleW*0.4, nozzleY - 4, l.bottleW*0.8, 14, 3);
+  ctx.fill();
+
+  // Drops when active
+  if (m.active && m.glow > 0.3) {
+    for (let d = 0; d < 3; d++) {
+      const dropY = nozzleY + 10 + ((frameCount * 2 + d * 20) % 40);
+      ctx.beginPath();
+      ctx.arc(cx + (d-1)*4, dropY, 2, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,220,120,0.8)';
+      ctx.shadowColor = '#00e87a'; ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // Label
+  ctx.font = `${Math.max(8, l.W*0.011)}px 'Share Tech Mono',monospace`;
+  ctx.fillStyle = m.active ? '#00d4ff' : '#2a4060';
+  ctx.textAlign = 'center';
+  ctx.fillText('REMPLISSAGE', cx, baseY - l.H*0.21);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawMachineCapper(l) {
+  const m = machines.capper;
+  const sx = l.stationX[2];
+  const armDown = m.armY * l.bottleH * 0.6;
+  const baseY = l.bottleY - l.bottleH * 0.2;
+  const headY = baseY + armDown;
+  const cx = sx;
+
+  ctx.save();
+  // Arm
+  ctx.strokeStyle = m.active ? '#39ff14' : '#1a3050';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = m.active ? '#39ff14' : 'transparent';
+  ctx.shadowBlur = m.active ? 10 : 0;
+  ctx.beginPath();
+  ctx.moveTo(cx, baseY - l.H*0.18);
+  ctx.lineTo(cx, headY);
+  ctx.stroke();
+
+  // Rotating cap applicator
+  ctx.save();
+  ctx.translate(cx, headY);
+  ctx.rotate(m.capAngle);
+  ctx.fillStyle = m.active ? '#39ff14' : '#1a4030';
+  for (let i = 0; i < 4; i++) {
+    ctx.rotate(Math.PI/2);
+    ctx.fillRect(-2, 0, 4, l.bottleW*0.35);
+  }
+  ctx.restore();
+
+  // Center disk
+  ctx.beginPath();
+  ctx.arc(cx, headY, l.bottleW*0.28, 0, Math.PI*2);
+  ctx.fillStyle = m.active ? '#39ff14' : '#1a4030';
+  ctx.shadowColor = m.active ? '#39ff14' : 'transparent';
+  ctx.shadowBlur = m.active ? 8 : 0;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.font = `${Math.max(8, l.W*0.011)}px 'Share Tech Mono',monospace`;
+  ctx.fillStyle = m.active ? '#39ff14' : '#2a4060';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOUCHAGE', cx, baseY - l.H*0.21);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawMachineLabeler(l) {
+  const m = machines.labeler;
+  const sx = l.stationX[3];
+  const slide = m.armX * l.bottleW * 0.9;
+  const baseY = l.bottleY + l.bottleH * 0.4;
+  const cx = sx;
+
+  ctx.save();
+  // Horizontal rail
+  ctx.strokeStyle = '#1a2a44';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx - l.bottleW*1.2, baseY);
+  ctx.lineTo(cx + l.bottleW*1.5, baseY);
+  ctx.stroke();
+
+  // Sliding arm
+  const armX = cx - l.bottleW*0.6 + slide;
+  ctx.fillStyle = m.active ? '#ff6b35' : '#1a2840';
+  ctx.shadowColor = m.active ? '#ff6b35' : 'transparent';
+  ctx.shadowBlur = m.active ? 10 : 0;
+  ctx.beginPath();
+  ctx.roundRect(armX - 4, baseY - l.H*0.1, 8, l.H*0.13, 2);
+  ctx.fill();
+
+  // Label head
+  ctx.beginPath();
+  ctx.roundRect(armX - l.bottleW*0.5, baseY - l.H*0.06, l.bottleW*0.9, l.H*0.06, 2);
+  ctx.fillStyle = m.active ? '#ffd700' : '#1a2840';
+  ctx.shadowColor = m.active ? '#ffd700' : 'transparent';
+  ctx.shadowBlur = m.active ? 6 : 0;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.font = `${Math.max(8, l.W*0.011)}px 'Share Tech Mono',monospace`;
+  ctx.fillStyle = m.active ? '#ffd700' : '#2a4060';
+  ctx.textAlign = 'center';
+  ctx.fillText('ÉTIQUETAGE', cx, l.bottleY - l.bottleH * 0.22 - l.H*0.02);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawBelt(l) {
+  const { W, H, beltY, beltH, beltBot } = l;
+
+  // Belt shadow/gradient
+  const bg = ctx.createLinearGradient(0, beltY - 4, 0, beltBot + 8);
+  bg.addColorStop(0, '#0d1e35');
+  bg.addColorStop(0.3, '#1a2e48');
+  bg.addColorStop(1, '#080f1e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, beltY - 2, W, beltH + 10);
+
+  // Belt strips (moving)
+  const stripW = W * 0.08;
+  const totalStrips = Math.ceil(W / stripW) + 2;
+  for (let i = 0; i < totalStrips; i++) {
+    const sx = (i * stripW - beltOffset) - stripW;
+    ctx.fillStyle = i % 2 === 0 ? '#152030' : '#101820';
+    ctx.fillRect(sx, beltY, stripW, beltH);
+  }
+
+  // Belt edge lines
+  ctx.strokeStyle = '#0a3060';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, beltY); ctx.lineTo(W, beltY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, beltBot); ctx.lineTo(W, beltBot); ctx.stroke();
+
+  // Belt center dashed line
+  ctx.setLineDash([8, 8]);
+  ctx.lineDashOffset = -beltOffset * 2;
+  ctx.strokeStyle = 'rgba(0,100,160,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, beltY + beltH/2);
+  ctx.lineTo(W, beltY + beltH/2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+
+  // Rollers at edges
+  [W*0.03, W*0.97].forEach(rx => {
+    ctx.beginPath();
+    ctx.ellipse(rx, beltY + beltH/2, beltH*0.4, beltH*0.55, 0, 0, Math.PI*2);
+    const rg = ctx.createRadialGradient(rx-2, beltY+beltH*0.35, 1, rx, beltY+beltH/2, beltH*0.55);
+    rg.addColorStop(0, '#2a4060');
+    rg.addColorStop(1, '#0a1828');
+    ctx.fillStyle = rg;
+    ctx.fill();
+    ctx.strokeStyle = '#1a3050'; ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // Arrow direction indicator
+  ctx.fillStyle = 'rgba(0,180,255,0.15)';
+  ctx.font = `${Math.max(10, W*0.018)}px 'Share Tech Mono',monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText('→ →  TAPIS ROULANT  → →', W/2, beltBot + 20);
+  ctx.textAlign = 'left';
+}
+
+function drawStationZones(l) {
+  const labels = ['ARRIVÉE', 'REMPLISSAGE', 'BOUCHAGE', 'ÉTIQUETAGE'];
+  const icons  = ['📦', '💧', '🔩', '🏷️'];
+  const activeIdx = bottles.map(b => {
+    if (['empty','arriving'].includes(b.state)) return -1;
+    if (['filling'].includes(b.state)) return 1;
+    if (['moving_to_cap','capping','capped'].includes(b.state)) return 2;
+    if (['moving_to_lbl','labeling','done'].includes(b.state)) return 3;
+    return -1;
+  });
+
+  l.stationX.forEach((sx, i) => {
+    const isActive = activeIdx.includes(i);
+    const zoneW = l.spacing * 0.8;
+
+    // Zone background
+    ctx.fillStyle = isActive ? 'rgba(0,212,255,0.04)' : 'rgba(10,24,40,0.5)';
+    ctx.strokeStyle = isActive ? 'rgba(0,212,255,0.3)' : 'rgba(20,40,70,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(sx - zoneW/2, l.bottleY - l.H*0.08, zoneW, l.H*0.78, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Floor marker
+    ctx.fillStyle = isActive ? 'rgba(0,212,255,0.2)' : 'rgba(20,50,80,0.4)';
+    ctx.fillRect(sx - l.bottleW*0.8, l.beltY - 1, l.bottleW*1.6, 3);
+
+    // Label at bottom
+    ctx.font = `${Math.max(7, l.W*0.010)}px 'Share Tech Mono',monospace`;
+    ctx.fillStyle = isActive ? '#00d4ff' : '#1a3050';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[i], sx, l.beltBot + 35);
+    ctx.textAlign = 'left';
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawBackground(l) {
+  // Deep bg
+  const bg = ctx.createLinearGradient(0, 0, 0, l.H);
+  bg.addColorStop(0, '#060c18');
+  bg.addColorStop(1, '#04090f');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, l.W, l.H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,80,140,0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < l.W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, l.H); ctx.stroke();
+  }
+  for (let y = 0; y < l.H; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(l.W, y); ctx.stroke();
+  }
+
+  // Ceiling rail
+  ctx.fillStyle = '#0d1e35';
+  ctx.fillRect(0, 0, l.W, l.bottleY - l.bottleH * 0.25);
+  ctx.strokeStyle = '#1a3050'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, l.bottleY - l.bottleH*0.25); ctx.lineTo(l.W, l.bottleY - l.bottleH*0.25); ctx.stroke();
+
+  // Ceiling dots/lights
+  l.stationX.forEach((sx, i) => {
+    const isActive = machines.filler.active && i===1 || machines.capper.active && i===2 || machines.labeler.active && i===3;
+    ctx.beginPath();
+    ctx.arc(sx, l.bottleY - l.bottleH*0.28, 5, 0, Math.PI*2);
+    ctx.fillStyle = isActive ? '#00d4ff' : '#1a3050';
+    if (isActive) { ctx.shadowColor = '#00d4ff'; ctx.shadowBlur = 12; }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+}
+
+function drawHUD(l) {
+  const active = bottles.filter(b => !['exiting'].includes(b.state));
+  const done = simCycleN;
+  ctx.save();
+  ctx.font = `${Math.max(8,l.W*0.011)}px 'Share Tech Mono',monospace`;
+  ctx.fillStyle = '#1a3050';
+  ctx.fillText(`BOUTEILLES EN LIGNE: ${active.length}   PRODUITES: ${Math.max(0,done-active.length)}`, 10, 18);
+  ctx.restore();
+}
+
+// ── Main draw ──
+function simDraw() {
+  const l = L();
+  ctx.clearRect(0, 0, l.W, l.H);
+  drawBackground(l);
+  drawStationZones(l);
+  drawBelt(l);
+  drawMachineFiller(l);
+  drawMachineCapper(l);
+  drawMachineLabeler(l);
+  // Draw bottles back to front
+  [...bottles].sort((a,b) => a.x - b.x).forEach(b => drawBottle(b, l));
+  drawParticles();
+  drawHUD(l);
+}
+
+function simLoop() {
+  simUpdate();
+  simDraw();
+  if (simRunning) simAnim = requestAnimationFrame(simLoop);
+}
+
+function simTogglePlay() {
+  simRunning = !simRunning;
+  const btn = document.getElementById('simPlayBtn');
+  const dot = document.getElementById('simDot');
+  if (simRunning) {
+    btn.textContent = '⏸ PAUSE';
+    btn.style.borderColor = '#ffd700'; btn.style.color = '#ffd700';
+    btn.style.background = 'rgba(255,215,0,0.1)';
+    dot.style.background = '#39ff14';
+    dot.style.boxShadow = '0 0 8px #39ff14';
+    simLoop();
+  } else {
+    btn.textContent = '▶ PLAY';
+    btn.style.borderColor = '#39ff14'; btn.style.color = '#39ff14';
+    btn.style.background = 'rgba(57,255,20,0.1)';
+    dot.style.background = '#ff6b35';
+    dot.style.boxShadow = '0 0 8px #ff6b35';
+  }
+}
+
+function simReset() {
+  simRunning = false;
+  cancelAnimationFrame(simAnim);
+  bottles = []; particles = []; simCycleN = 0;
+  bottleSpawnTimer = BOTTLE_INTERVAL - 10; // spawn first bottle quickly
+  frameCount = 0; beltOffset = 0;
+  machines.filler.armY = 0; machines.filler.armTarget = 0; machines.filler.glow = 0; machines.filler.active = false;
+  machines.capper.armY = 0; machines.capper.armTarget = 0; machines.capper.glow = 0; machines.capper.active = false; machines.capper.capAngle = 0;
+  machines.labeler.armX = 0; machines.labeler.armTarget = 0; machines.labeler.glow = 0; machines.labeler.active = false;
+  document.getElementById('simPlayBtn').textContent = '▶ PLAY';
+  document.getElementById('simPlayBtn').style.borderColor = '#39ff14';
+  document.getElementById('simPlayBtn').style.color = '#39ff14';
+  document.getElementById('simPlayBtn').style.background = 'rgba(57,255,20,0.1)';
+  document.getElementById('simDot').style.background = '#ff6b35';
+  document.getElementById('simDot').style.boxShadow = '0 0 8px #ff6b35';
+  document.getElementById('simPhaseLbl').textContent = 'EN ATTENTE';
+  simDraw();
+}
+
+// Initial static draw
+simDraw();
+</script>
+</body>
+</html>
